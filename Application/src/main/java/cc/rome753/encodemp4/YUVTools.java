@@ -217,6 +217,17 @@ public class YUVTools {
         }
     }
 
+    public static void nv21ToYv12(byte[] src, byte[] dest, int w, int h) {
+        int pos = w * h;
+        int v = pos;
+        int u = pos + (pos >> 2);
+        System.arraycopy(src, 0, dest, 0, pos);
+        while (pos < src.length) {
+            dest[v++] = src[pos++];
+            dest[u++] = src[pos++];
+        }
+    }
+
     public static void nv21ToNv12(byte[] src, byte[] dest, int w, int h) {
         nv12ToNv21(src, dest, w, h);
     }

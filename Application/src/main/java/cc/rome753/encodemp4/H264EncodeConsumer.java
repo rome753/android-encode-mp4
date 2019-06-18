@@ -118,11 +118,9 @@ public class H264EncodeConsumer extends Thread {
             byte[] tempBytes = new byte[yuvData.length];
             byte[] resultBytes = new byte[yuvData.length];
             if(mColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
-
-//                YuvUtils.NV21toYUV420P(yuvData, tempBytes, mWidth, mHeight);
-//                YuvUtils.YUV420PRot270(resultBytes, tempBytes, mWidth, mHeight);
-            } else {
-//                YUVTools.i420ToNv12(yuvData, tempBytes, mWidth, mHeight);
+                YUVTools.nv21ToYv12(yuvData, tempBytes, mWidth, mHeight);
+                YUVTools.rotateP90(tempBytes, resultBytes, mWidth, mHeight);
+            } else /*if(mColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar)*/{ //nv12
                 YUVTools.rotateSP90(yuvData, resultBytes, mWidth, mHeight);
             }
 
@@ -261,11 +259,7 @@ public class H264EncodeConsumer extends Thread {
     private boolean isCodecRecognizedFormat(int colorFormat) {
         switch (colorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-//            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedPlanar:
-            //video/avc编码器支持COLOR_FormatYUV420SemiPlanar格式
-            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-//            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedSemiPlanar:
-//            case MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV420PackedSemiPlanar:
+//            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
                 return true;
             default:
                 return false;
