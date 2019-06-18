@@ -71,6 +71,9 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import cc.rome753.encodemp4.R;
+import cc.rome753.encodemp4.YUVTools;
+
 public class Camera2BasicFragment extends Fragment
         implements View.OnClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
@@ -243,7 +246,10 @@ public class Camera2BasicFragment extends Fragment
 
         @Override
         public void onImageAvailable(ImageReader reader) {
-            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
+//            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
+            byte[] data = YUVTools.getBytesFromImageReader(reader);
+            ((CameraActivity)getActivity()).addVideoData(data);
+
         }
 
     };
@@ -512,8 +518,8 @@ public class Camera2BasicFragment extends Fragment
                 Size largest = Collections.max(
                         Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
                         new CompareSizesByArea());
-                mImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
-                        ImageFormat.JPEG, /*maxImages*/2);
+                mImageReader = ImageReader.newInstance(640, 480,
+                        ImageFormat.YUV_420_888, /*maxImages*/2);
                 mImageReader.setOnImageAvailableListener(
                         mOnImageAvailableListener, mBackgroundHandler);
 
@@ -687,6 +693,7 @@ public class Camera2BasicFragment extends Fragment
             mPreviewRequestBuilder
                     = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mPreviewRequestBuilder.addTarget(surface);
+            mPreviewRequestBuilder.addTarget(mImageReader.getSurface());
 
             // Here, we create a CameraCaptureSession for camera preview.
             mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()),
@@ -888,7 +895,10 @@ public class Camera2BasicFragment extends Fragment
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
-                takePicture();
+//                takePicture();
+
+                ((CameraActivity)getActivity()).click();
+
                 break;
             }
             case R.id.info: {

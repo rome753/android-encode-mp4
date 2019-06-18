@@ -38,6 +38,7 @@ android {
     buildToolsVersion "27.0.2"
 
     defaultConfig {
+        applicationId "cc.rome753.encodemp4"
         minSdkVersion 21
         targetSdkVersion 27
     }
