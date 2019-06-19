@@ -8,9 +8,9 @@ import android.media.MediaFormat;
 import android.os.Build;
 import android.util.Log;
 
-
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.util.HashSet;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -115,12 +115,10 @@ public class H264EncodeConsumer extends Thread {
             int mWidth = mParams.getFrameWidth();
             int mHeight = mParams.getFrameHeight();
 
-            byte[] tempBytes = new byte[yuvData.length];
             byte[] resultBytes = new byte[yuvData.length];
-            if(mColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
-                YUVTools.nv21ToYv12(yuvData, tempBytes, mWidth, mHeight);
-                YUVTools.rotateP90(tempBytes, resultBytes, mWidth, mHeight);
-            } else /*if(mColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar)*/{ //nv12
+            if(mColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) { // I420
+                YUVTools.rotateP90(yuvData, resultBytes, mWidth, mHeight);
+            } else /*if(mColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar)*/{ //NV12
                 YUVTools.rotateSP90(yuvData, resultBytes, mWidth, mHeight);
             }
 
@@ -247,23 +245,11 @@ public class H264EncodeConsumer extends Thread {
      */
     private int selectSupportColorFormat(MediaCodecInfo mCodecInfo, String mimeType) {
         MediaCodecInfo.CodecCapabilities capabilities = mCodecInfo.getCapabilitiesForType(mimeType);
-        for (int i = 0; i < capabilities.colorFormats.length; i++) {
-            int colorFormat = capabilities.colorFormats[i];
-            if (isCodecRecognizedFormat(colorFormat)) {
-                return colorFormat;
-            }
-        }
+        HashSet<Integer> colorFormats = new HashSet<>();
+        for(int i : capabilities.colorFormats) colorFormats.add(i);
+        if(colorFormats.contains(MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar)) return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
+        if(colorFormats.contains(MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar)) return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
         return 0;
-    }
-
-    private boolean isCodecRecognizedFormat(int colorFormat) {
-        switch (colorFormat) {
-            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-//            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                return true;
-            default:
-                return false;
-        }
     }
 
 }

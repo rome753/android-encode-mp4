@@ -14,6 +14,7 @@ public class YUVTools {
     public static void rotateP(byte[] src, byte[] dest, int w, int h, int rotation) {
         switch (rotation) {
             case 0:
+                System.arraycopy(src, 0, dest, 0, src.length);
                 break;
             case 90:
                 rotateP90(src, dest, w, h);
@@ -31,6 +32,7 @@ public class YUVTools {
     public static void rotateSP(byte[] src, byte[] dest, int w, int h, int rotation) {
         switch (rotation) {
             case 0:
+                System.arraycopy(src, 0, dest, 0, src.length);
                 break;
             case 90:
                 rotateSP90(src, dest, w, h);
@@ -173,18 +175,8 @@ public class YUVTools {
 
     /******************************* YUV420格式相互转换算法 *******************************/
 
-    public static void i420ToNv21(byte[] src, byte[] dest, int w, int h) {
-        int pos = w * h;
-        int u = pos;
-        int v = pos + (pos >> 2);
-        System.arraycopy(src, 0, dest, 0, pos);
-        while (pos < src.length) {
-            dest[pos++] = src[v++];
-            dest[pos++] = src[u++];
-        }
-    }
-
-    public static void i420ToNv12(byte[] src, byte[] dest, int w, int h) {
+    // i420 -> nv12, yv12 -> nv21
+    public static void pToSP(byte[] src, byte[] dest, int w, int h) {
         int pos = w * h;
         int u = pos;
         int v = pos + (pos >> 2);
@@ -195,10 +187,11 @@ public class YUVTools {
         }
     }
 
-    public static void yv12ToNv21(byte[] src, byte[] dest, int w, int h) {
+    // i420 -> nv21, yv12 -> nv12
+    public static void pToSPx(byte[] src, byte[] dest, int w, int h) {
         int pos = w * h;
-        int v = pos;
-        int u = pos + (pos >> 2);
+        int u = pos;
+        int v = pos + (pos >> 2);
         System.arraycopy(src, 0, dest, 0, pos);
         while (pos < src.length) {
             dest[pos++] = src[v++];
@@ -206,21 +199,23 @@ public class YUVTools {
         }
     }
 
-    public static void yv12ToNv12(byte[] src, byte[] dest, int w, int h) {
+    // nv12 -> i420, nv21 -> yv12
+    public static void spToP(byte[] src, byte[] dest, int w, int h) {
         int pos = w * h;
-        int v = pos;
-        int u = pos + (pos >> 2);
+        int u = pos;
+        int v = pos + (pos >> 2);
         System.arraycopy(src, 0, dest, 0, pos);
         while (pos < src.length) {
-            dest[pos++] = src[u++];
-            dest[pos++] = src[v++];
+            dest[u++] = src[pos++];
+            dest[v++] = src[pos++];
         }
     }
 
-    public static void nv21ToYv12(byte[] src, byte[] dest, int w, int h) {
+    // nv12 -> yv12, nv21 -> i420
+    public static void spToPx(byte[] src, byte[] dest, int w, int h) {
         int pos = w * h;
-        int v = pos;
-        int u = pos + (pos >> 2);
+        int u = pos;
+        int v = pos + (pos >> 2);
         System.arraycopy(src, 0, dest, 0, pos);
         while (pos < src.length) {
             dest[v++] = src[pos++];
@@ -228,11 +223,17 @@ public class YUVTools {
         }
     }
 
-    public static void nv21ToNv12(byte[] src, byte[] dest, int w, int h) {
-        nv12ToNv21(src, dest, w, h);
+    // i420 <-> yv12
+    public static void pToP(byte[] src, byte[] dest, int w, int h) {
+        int pos = w * h;
+        int off = pos >> 2;
+        System.arraycopy(src, 0, dest, 0, pos);
+        System.arraycopy(src, pos, dest, pos + off, off);
+        System.arraycopy(src, pos + off, dest, pos, off);
     }
 
-    public static void nv12ToNv21(byte[] src, byte[] dest, int w, int h) {
+    // nv12 <-> nv21
+    public static void spToSP(byte[] src, byte[] dest, int w, int h) {
         int pos = w * h;
         System.arraycopy(src, 0, dest, 0, pos);
         for (; pos < src.length; pos += 2) {
@@ -401,17 +402,18 @@ public class YUVTools {
     public static byte[] getBytesFromImageReader(ImageReader imageReader) {
         try (Image image = imageReader.acquireNextImage()) {
             final Image.Plane[] planes = image.getPlanes();
-            int len = 0;
-            for (int i = 0; i < 2; i++) {
-                len += planes[i].getBuffer().remaining();
-            }
-            byte[] bytes = new byte[len + 1];
-            int off = 0;
-            for (int i = 0; i < 2; i++) {
-                ByteBuffer buffer = planes[i].getBuffer();
-                int remain = buffer.remaining();
-                buffer.get(bytes, off, remain);
-                off += remain;
+            ByteBuffer b0 = planes[0].getBuffer();
+            ByteBuffer b1 = planes[1].getBuffer();
+            ByteBuffer b2 = planes[2].getBuffer();
+            int y = b0.remaining(), u = y >> 2, v = u;
+            byte[] bytes = new byte[y + u + v];
+            if(b1.remaining() > u) { // y420sp
+                b0.get(bytes, 0, b0.remaining());
+                b1.get(bytes, y, b1.remaining()); // uv
+            } else { // y420p
+                b0.get(bytes, 0, b0.remaining());
+                b1.get(bytes, y, b1.remaining()); // u
+                b2.get(bytes, y + u, b2.remaining()); // v
             }
             return bytes;
         } catch (Exception e) {
@@ -419,5 +421,4 @@ public class YUVTools {
         }
         return null;
     }
-
 }
