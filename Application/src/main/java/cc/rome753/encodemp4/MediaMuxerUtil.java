@@ -60,29 +60,8 @@ public class MediaMuxerUtil {
         }
     }
 
-    static class MuxData {
-        public ByteBuffer outputBuffer;
-        public MediaCodec.BufferInfo bufferInfo;
-        public boolean isVideo;
-
-        public MuxData(ByteBuffer outputBuffer, MediaCodec.BufferInfo bufferInfo, boolean isVideo) {
-            this.outputBuffer = outputBuffer;
-            this.bufferInfo = bufferInfo;
-            this.isVideo = isVideo;
-        }
-    }
-
-    // 缓存未启动前的数据
-    private Queue<MuxData> bufQueue = new LinkedList<>();
-
     public synchronized void pumpStream(ByteBuffer outputBuffer, MediaCodec.BufferInfo bufferInfo, boolean isVideo) {
-        if (mBeginMillis == 0) {
-            bufQueue.add(new MuxData(outputBuffer, bufferInfo, isVideo));
-        } else {
-            while (!bufQueue.isEmpty()) {
-                MuxData data = bufQueue.remove();
-                pump(data.outputBuffer, data.bufferInfo, data.isVideo);
-            }
+        if (mBeginMillis > 0) {
             try {
                 pump(outputBuffer, bufferInfo, isVideo);
             }catch (Exception e) {
